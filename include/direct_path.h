@@ -92,6 +92,7 @@ typedef struct {
 
 /* 直连流量标记 */
 #define DIRECT_MARK                     0x88
+#define DIRECT_MARK_STR                 "0x88000000"
 
 
 #endif

@@ -68,23 +68,23 @@ bool setup_nft_rules() {
         "add chain inet bpf_accel output       { type filter hook output     priority %d; policy accept; }\n"
         
         // 规则 A: BYPASS 逻辑
-        "add rule inet bpf_accel early_bypass meta mark & 0xff000000 == %u counter name bypass_clash_cnt accept\n"
+        "add rule inet bpf_accel early_bypass meta mark & 0xff000000 == %s counter name bypass_clash_cnt accept\n"
         
         // 规则 B: Forward 链联动 Flowtable
-        "add rule inet bpf_accel forward meta mark & 0xff000000 == %u ct state established flow add @ft\n"
-        "add rule inet bpf_accel forward meta mark & 0xff000000 == %u ct state established accept\n"
+        "add rule inet bpf_accel forward meta mark & 0xff000000 == %s ct state established flow add @ft\n"
+        "add rule inet bpf_accel forward meta mark & 0xff000000 == %s ct state established accept\n"
         
         // 规则 C: 本地流量
-        "add rule inet bpf_accel input  meta mark & 0xff000000 == %u ct state established counter name local_accel_in accept\n"
-        "add rule inet bpf_accel output meta mark & 0xff000000 == %u ct state established accept\n",
+        "add rule inet bpf_accel input  meta mark & 0xff000000 == %s ct state established counter name local_accel_in accept\n"
+        "add rule inet bpf_accel output meta mark & 0xff000000 == %s ct state established accept\n",
         
         LAN_IF, WAN_IF,
         BYPASS_PRIORITY, BPF_ACCEL_FORWARD_PRIORITY, BPF_ACCEL_INPUT_PRIORITY, BPF_ACCEL_OUTPUT_PRIORITY,
-        DIRECT_MARK, // early_bypass
-        DIRECT_MARK, // forward flow add
-        DIRECT_MARK, // forward accept
-        DIRECT_MARK, // input
-        DIRECT_MARK  // output
+        DIRECT_MARK_STR, // early_bypass
+        DIRECT_MARK_STR, // forward flow add
+        DIRECT_MARK_STR, // forward accept
+        DIRECT_MARK_STR, // input
+        DIRECT_MARK_STR  // output
     );
 
     // 执行命令

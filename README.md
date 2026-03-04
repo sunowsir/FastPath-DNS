@@ -16,10 +16,10 @@
   5. 拷贝其他脚本至openwrt: `scp ./script/* root@openwrt地址:~/path/to/`
   6. 部署: 执行`./deploy`, 然后在openclash开发者选项中增加如下内容并保存应用: 
      ```bash 
-        nft "insert rule inet fw4 openclash index 0 meta mark & 0xff000000 == 0x88000000 counter return"
-        nft "insert rule inet fw4 openclash_mangle index 0 meta mark & 0xff000000 == 0x88000000 counter return"
-        nft "insert rule inet fw4 openclash_mangle_output index 0 meta mark & 0xff000000 == 0x88000000 counter return"
-        nft "insert rule inet fw4 openclash_output index 0 meta mark & 0xff000000 == 0x88000000 counter return"
+     nft "insert rule inet fw4 openclash index 0 meta mark & 0xff000000 == 0x88000000 counter return"
+     nft "insert rule inet fw4 openclash_mangle index 0 meta mark & 0xff000000 == 0x88000000 counter return"
+     nft "insert rule inet fw4 openclash_mangle_output index 0 meta mark & 0xff000000 == 0x88000000 counter return"
+     nft "insert rule inet fw4 openclash_output index 0 meta mark & 0xff000000 == 0x88000000 counter return"
      ```
 
 ## 恢复环境

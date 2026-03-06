@@ -12,6 +12,7 @@
 #include <linux/ip.h>
 #include <linux/in.h>
 #include <linux/udp.h>
+#include <linux/tcp.h>
 #include <linux/bpf.h>
 #include <linux/pkt_cls.h>
 #include <linux/if_ether.h>
@@ -35,6 +36,8 @@
 #define DNS_HEADER_OPCODE_STANDARD      0
 /* RFC3635 标准单个域名标签支持的最大长度 */
 #define DNS_LABEL_MAX_LEN               63
+/* DNS标准保温头部长度 */
+#define DNS_HEADER_LEN                  12
 
 
 /* 标准DNS端口 */
@@ -49,7 +52,6 @@
 
 /* 限制 x 防止 x 超过最大值，截断高位 */
 #define LIMIT_BY_MASK(x, mask)          ((x) & (mask))
-
 
 /* 定义 LRU Hash Map 作为缓存 */
 typedef struct {

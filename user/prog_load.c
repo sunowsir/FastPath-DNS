@@ -122,14 +122,14 @@ bool attach_tc_prog(int tc_prog_fd, struct bpf_object *tc_obj) {
     ret = attach_tc_prog_by_if(tc_obj, tc_prog_fd, if_nametoindex(LAN_IF), BPF_TC_EGRESS);
     if (!ret) return ret;
 
-    ret = tc_prog_hook_create(tc_obj, if_nametoindex(WAN_IF));
-    if (!ret) return ret;
+    // ret = tc_prog_hook_create(tc_obj, if_nametoindex(WAN_IF));
+    // if (!ret) return ret;
 
-    ret = attach_tc_prog_by_if(tc_obj, tc_prog_fd, if_nametoindex(WAN_IF), BPF_TC_INGRESS);
-    if (!ret) return ret;
+    // ret = attach_tc_prog_by_if(tc_obj, tc_prog_fd, if_nametoindex(WAN_IF), BPF_TC_INGRESS);
+    // if (!ret) return ret;
 
-    ret = attach_tc_prog_by_if(tc_obj, tc_prog_fd, if_nametoindex(WAN_IF), BPF_TC_EGRESS);
-    if (!ret) return ret;
+    // ret = attach_tc_prog_by_if(tc_obj, tc_prog_fd, if_nametoindex(WAN_IF), BPF_TC_EGRESS);
+    // if (!ret) return ret;
 
     return ret;
 }

@@ -78,38 +78,23 @@ static __always_inline int do_lookup_map(__u32 *addr) {
 }
 
 /* 判断是否应当加速 */
-static __always_inline int do_lookup(struct iphdr *iph) {
-    if (unlikely(NULL == iph)) return 0;
+static __always_inline int do_lookup(struct iphdr *ip) {
+    if (unlikely(NULL == ip)) return 0;
 
     /* 过滤纯内网互访 */
-    if (is_private_ip(iph->saddr) && is_private_ip(iph->daddr)) return 0;
+    if (is_private_ip(ip->saddr) && is_private_ip(ip->daddr)) return 0;
 
     /* 查询目的IP */
-    if (do_lookup_map(&(iph->daddr))) return 1;
+    if (do_lookup_map(&(ip->daddr))) return 1;
 
     /* 查询源IP */
-    if (do_lookup_map(&(iph->saddr))) return 1;
+    if (do_lookup_map(&(ip->saddr))) return 1;
 
     return 0;
 }
 
-static __always_inline int do_lookup_dns(struct __sk_buff *skb, struct iphdr *ip, void *data_end) {
-    if (unlikely(NULL == skb || NULL == ip || NULL == data_end)) return TC_ACT_OK;
-
-    /* 如果源地址不是私网地址或者目的地址不是私网地址，则不予处理 */
-    if (!is_private_ip(ip->saddr) || !is_private_ip(ip->daddr)) {
-        return TC_ACT_OK;
-    }
-
-    /* 只处理UDP的DNS请求 */
-    if (unlikely(ip->protocol != IPPROTO_UDP)) return TC_ACT_OK;
-
-    struct udphdr *udp = (void *)ip + sizeof(*ip);
-    if (unlikely((void *)udp + sizeof(*udp) > data_end)) return TC_ACT_OK;
-    if (unlikely(NULL == udp)) return TC_ACT_OK;
-
-    if (udp->source != bpf_htons(DIRECT_DNS_SERVER_PORT) &&
-        udp->source != bpf_htons(PROXY_DNS_SERVER_PORT)) return TC_ACT_OK;
+static __always_inline void udp_dns_pkt_dport_modify(struct __sk_buff *skb, struct udphdr *udp) {
+    if (unlikely(NULL == skb || NULL == udp)) return ;
 
     /* 回程包 */
     __u16 check_val = udp->check;
@@ -123,6 +108,55 @@ static __always_inline int do_lookup_dns(struct __sk_buff *skb, struct iphdr *ip
     if (unlikely(check_val != 0)) {
         offset = sizeof(struct ethhdr) + sizeof(struct iphdr) + offsetof(struct udphdr, check);
         bpf_l4_csum_replace(skb, offset, old_sport, new_sport, sizeof(new_sport));
+    }
+
+    return ;
+}
+
+static __always_inline void tcp_dns_pkt_dport_modify(struct __sk_buff *skb, struct tcphdr *tcp) {
+    if (unlikely(NULL == skb || NULL == tcp)) return ;
+
+    /* 回程包 */
+    __u16 check_val = tcp->check;
+    __be16 old_sport = tcp->source;
+    __be16 new_sport = bpf_htons(NORMAOL_DNS_PORT);
+
+    /* 修改端口 */
+    __u32 offset = sizeof(struct ethhdr) + sizeof(struct iphdr) + offsetof(struct tcphdr, source);
+    bpf_skb_store_bytes(skb, offset, &new_sport, sizeof(new_sport), 0);
+
+    if (unlikely(check_val != 0)) {
+        offset = sizeof(struct ethhdr) + sizeof(struct iphdr) + offsetof(struct tcphdr, check);
+        bpf_l4_csum_replace(skb, offset, old_sport, new_sport, sizeof(new_sport));
+    }
+
+    return ;
+}
+
+static __always_inline int do_lookup_dns(struct __sk_buff *skb, void *l4_hdr, struct iphdr *ip, void *data_end) {
+    if (unlikely(NULL == skb || NULL == ip || NULL == data_end)) return TC_ACT_OK;
+    if (unlikely((l4_hdr + 4) > data_end)) return TC_ACT_OK;
+
+    switch(ip->protocol) {
+        case IPPROTO_UDP: {
+            struct udphdr *udp = (struct udphdr *)l4_hdr;
+            if ((void *)udp + sizeof(struct udphdr) > data_end) return TC_ACT_OK;
+            // if (udp->source != bpf_htons(DIRECT_DNS_SERVER_PORT) &&
+            //     udp->source != bpf_htons(PROXY_DNS_SERVER_PORT)) return TC_ACT_OK;
+            if (udp->source != bpf_htons(DIRECT_DNS_SERVER_PORT)) return TC_ACT_OK;
+
+            udp_dns_pkt_dport_modify(skb, udp);
+        } break;
+        case IPPROTO_TCP: {
+            struct tcphdr *tcp = (struct tcphdr *)l4_hdr;
+            if ((void *)tcp + sizeof(struct tcphdr) > data_end) return TC_ACT_OK;
+            // if (tcp->source != bpf_htons(DIRECT_DNS_SERVER_PORT) &&
+            //     tcp->source != bpf_htons(PROXY_DNS_SERVER_PORT)) return TC_ACT_OK;
+            if (tcp->source != bpf_htons(DIRECT_DNS_SERVER_PORT)) return TC_ACT_OK;
+
+            tcp_dns_pkt_dport_modify(skb, tcp);
+        } break;
+        default: return TC_ACT_OK;
     }
 
     return TC_ACT_OK;
@@ -139,12 +173,15 @@ int tc_direct_path(struct __sk_buff *skb) {
     struct ethhdr *eth = (void *)(long)skb->data;
     if ((void *)(eth + 1) > data_end) return TC_ACT_OK;
 
-    struct iphdr *iph = (void *)(eth + 1);
-    if ((void *)(iph + 1) > data_end) return TC_ACT_OK;
+    struct iphdr *ip = (void *)(eth + 1);
+    if ((void *)(ip + 1) > data_end) return TC_ACT_OK;
 
-    if (do_lookup(iph)) skb->mark = bpf_htonl(DIRECT_MARK);
+    /* 如果目的地址不是私网地址，则不予处理 */
+    if (!is_private_ip(ip->daddr)) return TC_ACT_OK;
 
-    do_lookup_dns(skb, iph, data_end);
+    if (do_lookup(ip)) skb->mark = bpf_htonl(DIRECT_MARK);
+
+    do_lookup_dns(skb, (void *)ip + (ip->ihl * 4), ip, data_end);
 
     return TC_ACT_OK;
 }

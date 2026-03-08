@@ -1,5 +1,5 @@
-# DirectPath 加速引擎
-> 直连DNS加速引擎：利用ebpf实现国内域名DNS请求不受openclash等软件的控制直达openwrt上部署的dns服务器
+# FastPath-DNS
+> 使用 eBPF 实现 DNS 分流
 > 
 
 ## 部署方法

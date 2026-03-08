@@ -4,7 +4,7 @@
 
 ## 部署方法
 
-  1. `git clone https://github.com/sunowsir/DirectPath.git && cd DirectPath`
+  1. `git clone https://github.com/sunowsir/FastPath-DNS.git && cd FastPath-DNS`
   2. 设置环境变量: `export OPENWRT_SDK=openwrt源码编译目录`、`export STAGING_DIR=${OPENWRT_SDK}/staging_dir`
   3. 编译: 
         1. `cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/openwrt.cmake -DOPENWRT_SDK=$OPENWRT_SDK` 
